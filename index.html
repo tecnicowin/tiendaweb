@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda Pro | Sistema de Gestión Premium</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-shopping-cart"></i>
+            <span>TIENDA PRO</span>
+        </div>
+        <nav>
+            <a onclick="showSection('dashboard')" class="nav-link active" id="link-dashboard">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </a>
+            <a onclick="showSection('inventory')" class="nav-link" id="link-inventory">
+                <i class="fas fa-boxes"></i> Inventario
+            </a>
+            <a onclick="showSection('pos')" class="nav-link" id="link-pos">
+                <i class="fas fa-cash-register"></i> Facturación
+            </a>
+            <a onclick="showSection('reports')" class="nav-link" id="link-reports">
+                <i class="fas fa-file-invoice-dollar"></i> Reportes
+            </a>
+        </nav>
+        <div style="margin-top: auto;">
+            <a onclick="showSection('settings')" class="nav-link">
+                <i class="fas fa-cog"></i> Configuración
+            </a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1 id="section-title">Dashboard</h1>
+            <div class="bcv-card">
+                <span>Tasa BCV:</span>
+                <span class="text-emerald" id="bcv-rate">38.50 Bs.</span>
+                <button class="btn btn-secondary" onclick="updateRate()" style="padding: 5px 10px; font-size: 0.8rem;">Actualizar</button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboard" class="section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="text-muted">Ventas Hoy</span>
+                    <div class="stat-value" id="stat-sales-today">$0.00</div>
+                    <span class="text-emerald">↑ 12% vs ayer</span>
+                </div>
+                <div class="stat-card">
+                    <span class="text-muted">Productos en Stock</span>
+                    <div class="stat-value" id="stat-stock-total">0</div>
+                    <span class="text-amber">3 ítems por agotarse</span>
+                </div>
+                <div class="stat-card">
+                    <span class="text-muted">Caja del Día</span>
+                    <div class="stat-value" id="stat-caja-total">0.00 Bs.</div>
+                    <span class="text-muted">Desglose disponible en reportes</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- INVENTORY SECTION -->
+        <div id="inventory" class="section">
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                <button class="btn btn-primary" onclick="openModal('modal-product')">
+                    <i class="fas fa-plus"></i> Nuevo Producto
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('excel-input').click()">
+                    <i class="fas fa-file-excel"></i> Cargar Excel
+                </button>
+                <input type="file" id="excel-input" hidden accept=".xlsx, .xls" onchange="importExcel(this)">
+                <div style="margin-left: auto;">
+                    <input type="text" placeholder="Buscar producto..." class="btn btn-secondary" style="width: 300px; text-align: left;">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Costo ($)</th>
+                            <th>Venta ($)</th>
+                            <th>Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table-body">
+                        <!-- Items dynamically loaded -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- POS SECTION -->
+        <div id="pos" class="section">
+            <div class="pos-container">
+                <div class="pos-main">
+                    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                        <input type="text" id="pos-search" placeholder="Escanear o buscar producto..." class="btn btn-secondary" style="flex-grow: 1; text-align: left;">
+                        <button class="btn btn-primary" onclick="startScanner()">
+                            <i class="fas fa-barcode"></i> Cámara
+                        </button>
+                    </div>
+                    
+                    <div class="table-container" style="height: calc(100vh - 350px); overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Precio</th>
+                                    <th>Cant.</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-table-body">
+                                <!-- Cart items -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="pos-cart">
+                    <h3>Resumen de Venta</h3>
+                    <div class="checkout-card">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Subtotal:</span>
+                            <span id="pos-subtotal">$0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>IVA (16%):</span>
+                            <span id="pos-iva">$0.00</span>
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 800;">
+                            <span>TOTAL:</span>
+                            <span id="pos-total-usd">$0.00</span>
+                        </div>
+                        <div style="text-align: right; color: var(--primary); font-weight: 600;" id="pos-total-bs">
+                            0.00 Bs.
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <label class="text-muted" style="font-size: 0.8rem;">Método de Pago:</label>
+                        <select id="payment-method" class="btn btn-secondary" style="width: 100%; margin-top: 5px;">
+                            <option value="efectivo_usd">Efectivo $</option>
+                            <option value="efectivo_bs">Efectivo Bs</option>
+                            <option value="pago_movil">Pago Móvil</option>
+                            <option value="punto">Punto de Venta</option>
+                            <option value="zelle">Zelle</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" style="width: 100%; margin-top: auto; padding: 1.5rem;" onclick="processSale()">
+                        PROCESAR VENTA (F12)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REPORTS SECTION -->
+        <div id="reports" class="section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="generateReport('daily')">Reporte Diario</button>
+                </div>
+                <div class="stat-card">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="generateReport('monthly')">Reporte Mensual</button>
+                </div>
+                <div class="stat-card">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="generateReport('inventory')">Movimiento Inventario</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div style="padding: 1rem; border-bottom: 1px solid var(--border);">Últimas Ventas</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total ($)</th>
+                            <th>Total (Bs)</th>
+                            <th>Método</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-history-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUCTO -->
+    <div class="modal-overlay" id="modal-product">
+        <div class="modal">
+            <h2>Registrar Producto</h2>
+            <form id="product-form" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <input type="text" id="p-code" placeholder="Código de Barras" class="btn btn-secondary">
+                    <input type="text" id="p-name" placeholder="Nombre del Producto" class="btn btn-secondary">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <input type="number" id="p-cost" placeholder="Costo $" class="btn btn-secondary">
+                    <input type="number" id="p-price" placeholder="Venta $" class="btn btn-secondary">
+                    <input type="number" id="p-stock" placeholder="Stock" class="btn btn-secondary">
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div id="img-preview" style="width: 80px; height: 80px; background: var(--glass); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-image text-muted"></i>
+                    </div>
+                    <input type="file" id="p-image" accept="image/*" onchange="previewImage(this)">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-product')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL SCANNER -->
+    <div class="modal-overlay" id="modal-scanner">
+        <div class="modal">
+            <h2>Escanear Código</h2>
+            <div id="reader"></div>
+            <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="stopScanner()">Cerrar Cámara</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
