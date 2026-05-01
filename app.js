@@ -7,19 +7,73 @@ let bcvData = JSON.parse(localStorage.getItem('pos_bcv')) || { rate: 38.50, date
 let bcvRate = bcvData.rate;
 
 // --- INITIALIZATION ---
+// --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     checkBCV();
     updateDashboard();
     renderInventory();
     renderSalesHistory();
+    initEventListeners();
 });
+
+function initEventListeners() {
+    // Inventory Form
+    const productForm = document.getElementById('product-form');
+    if (productForm) {
+        productForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            try {
+                const newProd = {
+                    id: Date.now().toString(),
+                    code: document.getElementById('p-code').value,
+                    name: document.getElementById('p-name').value,
+                    cost: parseFloat(document.getElementById('p-cost').value || 0),
+                    price: parseFloat(document.getElementById('p-price').value || 0),
+                    stock: parseInt(document.getElementById('p-stock').value || 0),
+                    iva: document.getElementById('p-iva').value,
+                    image: document.getElementById('img-preview').querySelector('img')?.src || ''
+                };
+                
+                if (!newProd.name) throw new Error("El nombre es obligatorio");
+
+                inventory.push(newProd);
+                logMovement(newProd.id, 'Entrada Inicial', newProd.stock);
+                saveInventory();
+                renderInventory();
+                closeModal('modal-product');
+                e.target.reset();
+                document.getElementById('img-preview').innerHTML = '<i class="fas fa-image text-muted"></i>';
+                
+                alert("¡Producto guardado exitosamente!");
+                showSection('dashboard');
+            } catch (err) {
+                alert("Error al guardar: " + err.message);
+            }
+        });
+    }
+
+    // POS Search
+    const posSearch = document.getElementById('pos-search');
+    if (posSearch) {
+        posSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = posSearch.value.trim();
+                const prod = inventory.find(p => p.code === query || p.name.toLowerCase().includes(query.toLowerCase()));
+                if (prod) {
+                    addToCart(prod);
+                    posSearch.value = '';
+                }
+            }
+        });
+    }
+}
 
 function checkBCV() {
     const today = new Date().toISOString().split('T')[0];
     if (bcvData.date !== today) {
         const newRate = prompt(`Nueva Jornada: ${today}. Por favor, ingrese la Tasa BCV del día:`, bcvRate);
-        if (newRate && !isNaN(newRate)) {
-            bcvRate = parseFloat(newRate);
+        if (newRate !== null) {
+            bcvRate = parseFloat(newRate) || bcvRate;
             bcvData = { rate: bcvRate, date: today };
             localStorage.setItem('pos_bcv', JSON.stringify(bcvData));
         }
@@ -44,30 +98,7 @@ function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 // --- INVENTORY MANAGEMENT ---
-document.getElementById('product-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const newProd = {
-        id: Date.now().toString(),
-        code: document.getElementById('p-code').value,
-        name: document.getElementById('p-name').value,
-        cost: parseFloat(document.getElementById('p-cost').value || 0),
-        price: parseFloat(document.getElementById('p-price').value || 0),
-        stock: parseInt(document.getElementById('p-stock').value || 0),
-        iva: document.getElementById('p-iva').value,
-        image: document.getElementById('img-preview').querySelector('img')?.src || ''
-    };
-    
-    inventory.push(newProd);
-    logMovement(newProd.id, 'Entrada Inicial', newProd.stock);
-    saveInventory();
-    renderInventory();
-    closeModal('modal-product');
-    e.target.reset();
-    document.getElementById('img-preview').innerHTML = '<i class="fas fa-image text-muted"></i>';
-    
-    alert("¡Producto guardado exitosamente!");
-    showSection('dashboard');
-});
+// (Listeners moved to initEventListeners)
 
 function renderInventory() {
     const tbody = document.getElementById('inventory-table-body');
@@ -142,17 +173,7 @@ function importExcel(input) {
 }
 
 // --- POS LOGIC ---
-const posSearch = document.getElementById('pos-search');
-posSearch.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        const query = posSearch.value.trim();
-        const prod = inventory.find(p => p.code === query || p.name.toLowerCase().includes(query.toLowerCase()));
-        if (prod) {
-            addToCart(prod);
-            posSearch.value = '';
-        }
-    }
-});
+// (Listeners moved to initEventListeners)
 
 function addToCart(prod) {
     const existing = currentCart.find(item => item.id === prod.id);
