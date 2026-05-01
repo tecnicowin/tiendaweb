@@ -138,7 +138,36 @@ function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('img-preview').innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = function() {
+                // Crear un canvas para redimensionar la imagen
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 300;
+                const MAX_HEIGHT = 300;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convertir a base64 comprimido (JPEG 0.7)
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                document.getElementById('img-preview').innerHTML = `<img src="${compressedBase64}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+            }
         }
         reader.readAsDataURL(input.files[0]);
     }
