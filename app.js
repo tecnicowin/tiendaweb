@@ -187,6 +187,8 @@ function removeFromCart(index) {
 
 // --- BARCODE SCANNER ---
 let html5QrCode;
+let lastScannedCode = "";
+let lastScannedTime = 0;
 
 function startScanner() {
     openModal('modal-scanner');
@@ -194,14 +196,31 @@ function startScanner() {
     const config = { fps: 10, qrbox: { width: 250, height: 150 } };
     
     html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        const now = Date.now();
+        // Cooldown de 2 segundos para el mismo código para evitar duplicados
+        if (decodedText === lastScannedCode && (now - lastScannedTime) < 2000) return;
+        
         const prod = inventory.find(p => p.code === decodedText);
         if (prod) {
             addToCart(prod);
-            stopScanner();
-            // Optional: Haptic feedback
+            lastScannedCode = decodedText;
+            lastScannedTime = now;
+            
+            // Feedback visual/haptico
             if (window.navigator.vibrate) window.navigator.vibrate(100);
+            
+            // Mostrar aviso temporal de "Producto añadido"
+            showScanToast(prod.name);
         }
     }).catch(err => console.error(err));
+}
+
+function showScanToast(name) {
+    const toast = document.createElement('div');
+    toast.innerText = `✅ ${name} añadido`;
+    toast.style = "position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 10px 20px; border-radius: 50px; z-index: 2000; animation: fadeIn 0.3s;";
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
 }
 
 function stopScanner() {
