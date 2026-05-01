@@ -223,9 +223,15 @@
                     <input type="text" id="p-name" placeholder="Nombre del Producto" class="btn btn-secondary">
                 </div>
                 <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
-                    <input type="number" id="p-cost" placeholder="Costo $" class="btn btn-secondary">
-                    <input type="number" id="p-price" placeholder="Venta $" class="btn btn-secondary">
+                    <input type="number" id="p-cost" placeholder="Costo $" step="0.01" class="btn btn-secondary">
+                    <input type="number" id="p-price" placeholder="Venta $" step="0.01" class="btn btn-secondary">
                     <input type="number" id="p-stock" placeholder="Stock" class="btn btn-secondary">
+                </div>
+                <div class="form-grid">
+                    <select id="p-iva" class="btn btn-secondary">
+                        <option value="16">Gravado (IVA 16%)</option>
+                        <option value="0">Exento (Sin IVA)</option>
+                    </select>
                 </div>
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div id="img-preview" style="width: 80px; height: 80px; background: var(--glass); border-radius: 12px; display: flex; align-items: center; justify-content: center;">

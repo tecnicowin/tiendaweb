@@ -35,9 +35,10 @@ document.getElementById('product-form').addEventListener('submit', (e) => {
         id: Date.now().toString(),
         code: document.getElementById('p-code').value,
         name: document.getElementById('p-name').value,
-        cost: parseFloat(document.getElementById('p-cost').value),
-        price: parseFloat(document.getElementById('p-price').value),
-        stock: parseInt(document.getElementById('p-stock').value),
+        cost: parseFloat(document.getElementById('p-cost').value || 0),
+        price: parseFloat(document.getElementById('p-price').value || 0),
+        stock: parseInt(document.getElementById('p-stock').value || 0),
+        iva: document.getElementById('p-iva').value,
         image: document.getElementById('img-preview').querySelector('img')?.src || ''
     };
     
@@ -48,6 +49,9 @@ document.getElementById('product-form').addEventListener('submit', (e) => {
     closeModal('modal-product');
     e.target.reset();
     document.getElementById('img-preview').innerHTML = '<i class="fas fa-image text-muted"></i>';
+    
+    alert("¡Producto guardado exitosamente!");
+    showSection('dashboard');
 });
 
 function renderInventory() {
@@ -148,13 +152,19 @@ function addToCart(prod) {
 function renderCart() {
     const tbody = document.getElementById('cart-table-body');
     let subtotal = 0;
+    let totalIva = 0;
     
     tbody.innerHTML = currentCart.map((item, index) => {
         const lineTotal = item.price * item.qty;
         subtotal += lineTotal;
+        
+        // Calcular IVA individual
+        const itemIvaRate = parseFloat(item.iva || 16) / 100;
+        totalIva += lineTotal * itemIvaRate;
+
         return `
             <tr>
-                <td>${item.name}</td>
+                <td>${item.name} ${item.iva == 0 ? '<small>(Exento)</small>' : ''}</td>
                 <td>$${item.price.toFixed(2)}</td>
                 <td>
                     <input type="number" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)" style="width: 50px; background: transparent; color: white; border: 1px solid var(--border); border-radius: 4px;">
@@ -165,12 +175,11 @@ function renderCart() {
         `;
     }).join('');
     
-    const iva = subtotal * 0.16;
-    const totalUsd = subtotal + iva;
+    const totalUsd = subtotal + totalIva;
     const totalBs = totalUsd * bcvRate;
     
     document.getElementById('pos-subtotal').innerText = `$${subtotal.toFixed(2)}`;
-    document.getElementById('pos-iva').innerText = `$${iva.toFixed(2)}`;
+    document.getElementById('pos-iva').innerText = `$${totalIva.toFixed(2)}`;
     document.getElementById('pos-total-usd').innerText = `$${totalUsd.toFixed(2)}`;
     document.getElementById('pos-total-bs').innerText = `${totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs.`;
 }
