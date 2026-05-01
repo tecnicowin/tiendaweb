@@ -215,11 +215,11 @@
         <div class="modal">
             <h2>Registrar Producto</h2>
             <form id="product-form" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-grid">
                     <input type="text" id="p-code" placeholder="Código de Barras" class="btn btn-secondary">
                     <input type="text" id="p-name" placeholder="Nombre del Producto" class="btn btn-secondary">
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
                     <input type="number" id="p-cost" placeholder="Costo $" class="btn btn-secondary">
                     <input type="number" id="p-price" placeholder="Venta $" class="btn btn-secondary">
                     <input type="number" id="p-stock" placeholder="Stock" class="btn btn-secondary">
