@@ -193,7 +193,11 @@ let lastScannedTime = 0;
 function startScanner(mode = 'pos') {
     openModal('modal-scanner');
     html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+    const config = { 
+        fps: 20, 
+        qrbox: { width: 280, height: 180 },
+        aspectRatio: 1.0
+    };
     
     html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
         if (mode === 'inventory') {
