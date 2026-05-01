@@ -216,7 +216,10 @@
             <h2>Registrar Producto</h2>
             <form id="product-form" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
                 <div class="form-grid">
-                    <input type="text" id="p-code" placeholder="Código de Barras" class="btn btn-secondary">
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="p-code" placeholder="Código de Barras" class="btn btn-secondary" style="flex-grow: 1;">
+                        <button type="button" class="btn btn-primary" onclick="startScanner('inventory')" style="padding: 10px;"><i class="fas fa-barcode"></i></button>
+                    </div>
                     <input type="text" id="p-name" placeholder="Nombre del Producto" class="btn btn-secondary">
                 </div>
                 <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">

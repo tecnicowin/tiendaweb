@@ -190,12 +190,19 @@ let html5QrCode;
 let lastScannedCode = "";
 let lastScannedTime = 0;
 
-function startScanner() {
+function startScanner(mode = 'pos') {
     openModal('modal-scanner');
     html5QrCode = new Html5Qrcode("reader");
     const config = { fps: 10, qrbox: { width: 250, height: 150 } };
     
     html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        if (mode === 'inventory') {
+            document.getElementById('p-code').value = decodedText;
+            stopScanner();
+            if (window.navigator.vibrate) window.navigator.vibrate(100);
+            return;
+        }
+
         const now = Date.now();
         // Cooldown de 2 segundos para el mismo código para evitar duplicados
         if (decodedText === lastScannedCode && (now - lastScannedTime) < 2000) return;
