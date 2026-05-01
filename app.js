@@ -3,14 +3,29 @@ let inventory = JSON.parse(localStorage.getItem('pos_inventory')) || [];
 let sales = JSON.parse(localStorage.getItem('pos_sales')) || [];
 let inventoryLogs = JSON.parse(localStorage.getItem('pos_logs')) || [];
 let currentCart = [];
-let bcvRate = 38.50;
+let bcvData = JSON.parse(localStorage.getItem('pos_bcv')) || { rate: 38.50, date: "" };
+let bcvRate = bcvData.rate;
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    checkBCV();
     updateDashboard();
     renderInventory();
     renderSalesHistory();
 });
+
+function checkBCV() {
+    const today = new Date().toISOString().split('T')[0];
+    if (bcvData.date !== today) {
+        const newRate = prompt(`Nueva Jornada: ${today}. Por favor, ingrese la Tasa BCV del día:`, bcvRate);
+        if (newRate && !isNaN(newRate)) {
+            bcvRate = parseFloat(newRate);
+            bcvData = { rate: bcvRate, date: today };
+            localStorage.setItem('pos_bcv', JSON.stringify(bcvData));
+        }
+    }
+    document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
+}
 
 // --- NAVIGATION ---
 function showSection(sectionId) {
@@ -361,9 +376,12 @@ function generateInvoiceById(id) {
 
 // --- UTILS ---
 function updateRate() {
+    const today = new Date().toISOString().split('T')[0];
     const newRate = prompt("Ingrese nueva tasa BCV:", bcvRate);
     if (newRate && !isNaN(newRate)) {
         bcvRate = parseFloat(newRate);
+        bcvData = { rate: bcvRate, date: today };
+        localStorage.setItem('pos_bcv', JSON.stringify(bcvData));
         document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
         renderCart();
     }
