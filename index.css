@@ -114,13 +114,13 @@ body {
 
 /* --- MAIN CONTENT --- */
 .main-content {
-    margin-top: 75px;
-    padding: 2.5rem;
-    min-height: calc(100vh - 75px);
+    margin-top: 70px;
+    padding: 1.5rem 2rem;
+    min-height: calc(100vh - 70px);
 }
 
 header {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 /* --- COMPONENTS --- */
@@ -202,7 +202,7 @@ td {
 
 @media (max-width: 600px) {
     .top-nav { height: 60px; }
-    .main-content { margin-top: 60px; padding: 1rem; }
+    .main-content { margin-top: 60px; padding: 1rem 0.75rem; }
     .bcv-card .bcv-label { display: none; }
     .top-nav nav { gap: 2px; }
     .nav-link { padding: 0.5rem; }
