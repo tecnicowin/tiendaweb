@@ -151,7 +151,15 @@ function showSection(sectionId) {
     
     document.getElementById(sectionId).classList.add('active');
     document.getElementById(`link-${sectionId}`)?.classList.add('active');
-    document.getElementById('section-title').innerText = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+    
+    const titles = {
+        'dashboard': 'Dashboard',
+        'inventory': 'Inventario',
+        'pos': 'Facturación',
+        'reports': 'Reportes',
+        'settings': 'Ajustes'
+    };
+    document.getElementById('section-title').innerText = titles[sectionId] || sectionId;
     
     if(sectionId === 'inventory') renderInventory();
 }
