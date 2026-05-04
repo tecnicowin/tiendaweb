@@ -16,38 +16,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-    <div class="sidebar">
+    <div class="top-nav">
         <div class="logo">
             <i class="fas fa-shopping-cart"></i>
             <span>TIENDA PRO</span>
         </div>
         <nav>
             <a onclick="showSection('dashboard')" class="nav-link active" id="link-dashboard">
-                <i class="fas fa-chart-line"></i> Dashboard
+                <i class="fas fa-chart-line"></i> <span>Dashboard</span>
             </a>
             <a onclick="showSection('inventory')" class="nav-link" id="link-inventory">
-                <i class="fas fa-boxes"></i> Inventario
+                <i class="fas fa-boxes"></i> <span>Inventario</span>
             </a>
             <a onclick="showSection('pos')" class="nav-link" id="link-pos">
-                <i class="fas fa-cash-register"></i> Facturación
+                <i class="fas fa-cash-register"></i> <span>Facturación</span>
             </a>
             <a onclick="showSection('reports')" class="nav-link" id="link-reports">
-                <i class="fas fa-file-invoice-dollar"></i> Reportes
+                <i class="fas fa-file-invoice-dollar"></i> <span>Reportes</span>
             </a>
             <a onclick="showSection('settings')" class="nav-link" id="link-settings">
-                <i class="fas fa-cog"></i> Configuración
+                <i class="fas fa-cog"></i> <span>Ajustes</span>
             </a>
         </nav>
+        <div class="bcv-card">
+            <span class="bcv-label">BCV:</span>
+            <span id="bcv-rate" class="text-emerald">38.50 Bs.</span>
+            <button class="btn-icon" onclick="updateRate()"><i class="fas fa-sync-alt"></i></button>
+        </div>
     </div>
 
     <div class="main-content">
         <header>
             <h1 id="section-title">Dashboard</h1>
-            <div class="bcv-card">
-                <span>Tasa BCV:</span>
-                <span class="text-emerald" id="bcv-rate">38.50 Bs.</span>
-                <button class="btn btn-secondary" onclick="updateRate()" style="padding: 5px 10px; font-size: 0.8rem;">Actualizar</button>
-            </div>
         </header>
 
         <!-- DASHBOARD SECTION -->
