@@ -156,20 +156,10 @@
                         </div>
                     </div>
 
-                    <div style="margin-top: 1.5rem;">
-                        <label class="text-muted" style="font-size: 0.8rem;">Método de Pago:</label>
-                        <select id="payment-method" class="btn btn-secondary" style="width: 100%; margin-top: 5px;">
-                            <option value="efectivo_usd">Efectivo $</option>
-                            <option value="efectivo_bs">Efectivo Bs</option>
-                            <option value="pago_movil">Pago Móvil</option>
-                            <option value="paypal">Paypal</option>
-                            <option value="binance">Binance</option>
-                        </select>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: auto; padding: 1.5rem;" onclick="openPaymentModal()">
+                            PROCESAR VENTA (F12)
+                        </button>
                     </div>
-
-                    <button class="btn btn-primary" style="width: 100%; margin-top: auto; padding: 1.5rem;" onclick="processSale()">
-                        PROCESAR VENTA (F12)
-                    </button>
                 </div>
             </div>
         </div>
@@ -218,26 +208,40 @@
                 <p class="text-muted" style="margin-bottom: 2rem;">Configura los datos para la recepción de pagos digitales.</p>
                 
                 <form id="settings-form" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                    <div class="form-grid">
-                        <div>
-                            <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Pago Móvil (Banco)</label>
-                            <input type="text" id="set-pm-bank" class="btn btn-secondary" style="width: 100%;" placeholder="Ej: Banesco">
-                        </div>
-                        <div>
-                            <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Pago Móvil (Teléfono)</label>
-                            <input type="text" id="set-pm-phone" class="btn btn-secondary" style="width: 100%;" placeholder="0414-0000000">
+                    <div>
+                        <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Seleccione Método a Configurar</label>
+                        <select id="config-method-select" class="btn btn-secondary" style="width: 100%;" onchange="showConfigFields(this.value)">
+                            <option value="pago_movil">Pago Móvil</option>
+                            <option value="binance">Binance Pay</option>
+                            <option value="paypal">Paypal</option>
+                        </select>
+                    </div>
+
+                    <div id="config-fields-pm" class="config-group">
+                        <div class="form-grid">
+                            <div>
+                                <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Banco</label>
+                                <input type="text" id="set-pm-bank" class="btn btn-secondary" style="width: 100%;" placeholder="Ej: Banesco">
+                            </div>
+                            <div>
+                                <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Teléfono / CI</label>
+                                <input type="text" id="set-pm-phone" class="btn btn-secondary" style="width: 100%;" placeholder="0414-0000000">
+                            </div>
                         </div>
                     </div>
-                    <div>
+
+                    <div id="config-fields-binance" class="config-group" style="display: none;">
                         <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Binance ID / Pay</label>
                         <input type="text" id="set-binance-id" class="btn btn-secondary" style="width: 100%;" placeholder="ID de Binance">
                     </div>
-                    <div>
+
+                    <div id="config-fields-paypal" class="config-group" style="display: none;">
                         <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Correo Paypal</label>
                         <input type="email" id="set-paypal-email" class="btn btn-secondary" style="width: 100%;" placeholder="usuario@paypal.com">
                     </div>
+
                     <button type="submit" class="btn btn-primary" style="padding: 1rem;">
-                        <i class="fas fa-save"></i> Guardar Configuración
+                        <i class="fas fa-save"></i> Guardar Cambios
                     </button>
                 </form>
             </div>
@@ -281,12 +285,38 @@
         </div>
     </div>
 
-    <!-- MODAL SCANNER -->
-    <div class="modal-overlay" id="modal-scanner">
-        <div class="modal">
-            <h2>Escanear Código</h2>
-            <div id="reader"></div>
-            <button class="btn btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="stopScanner()">Cerrar Cámara</button>
+    <!-- MODAL CONFIRMACIÓN DE PAGO -->
+    <div class="modal-overlay" id="modal-payment">
+        <div class="modal" style="max-width: 450px;">
+            <h2 style="margin-bottom: 1rem;">Finalizar Venta</h2>
+            <div class="checkout-card" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 800;">
+                    <span>Total a Pagar:</span>
+                    <span id="modal-total-usd">$0.00</span>
+                </div>
+                <div style="text-align: right; color: var(--primary); font-weight: 600;" id="modal-total-bs">0.00 Bs.</div>
+            </div>
+
+            <label class="text-muted" style="font-size: 0.8rem;">Seleccione Método de Pago:</label>
+            <select id="confirm-payment-method" class="btn btn-secondary" style="width: 100%; margin: 5px 0 1.5rem 0;" onchange="toggleReferenceInput()">
+                <option value="efectivo_usd">Efectivo $</option>
+                <option value="efectivo_bs">Efectivo Bs</option>
+                <option value="pago_movil">Pago Móvil</option>
+                <option value="paypal">Paypal</option>
+                <option value="binance">Binance</option>
+            </select>
+
+            <div id="reference-container" style="display: none; margin-bottom: 1.5rem;">
+                <label class="text-muted" style="font-size: 0.8rem;">Número de Referencia:</label>
+                <input type="text" id="payment-reference" class="btn btn-secondary" style="width: 100%; margin-top: 5px;" placeholder="Ingrese el número de confirmación">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal('modal-payment')">Cancelar</button>
+                <button class="btn btn-primary" style="flex: 2; padding: 1rem;" onclick="finalizeSale()">
+                    <i class="fas fa-check-circle"></i> Confirmar y Facturar
+                </button>
+            </div>
         </div>
     </div>
 

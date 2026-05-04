@@ -120,7 +120,15 @@ function loadSettings() {
         document.getElementById('set-pm-phone').value = paymentSettings.pmPhone || '';
         document.getElementById('set-binance-id').value = paymentSettings.binanceId || '';
         document.getElementById('set-paypal-email').value = paymentSettings.paypalEmail || '';
+        showConfigFields(document.getElementById('config-method-select').value);
     }
+}
+
+function showConfigFields(method) {
+    document.querySelectorAll('.config-group').forEach(g => g.style.display = 'none');
+    if (method === 'pago_movil') document.getElementById('config-fields-pm').style.display = 'block';
+    if (method === 'binance') document.getElementById('config-fields-binance').style.display = 'block';
+    if (method === 'paypal') document.getElementById('config-fields-paypal').style.display = 'block';
 }
 
 function checkBCV() {
@@ -434,12 +442,65 @@ function stopScanner() {
 }
 
 // --- SALES PROCESSING ---
-function processSale() {
+function openPaymentModal() {
     if (currentCart.length === 0) return;
     
-    const subtotal = currentCart.reduce((acc, item) => acc + (item.price * item.qty), 0);
-    const totalUsd = subtotal * 1.16;
-    const method = document.getElementById('payment-method').value;
+    let subtotal = 0;
+    let totalIva = 0;
+    currentCart.forEach(item => {
+        const lineTotal = item.price * item.qty;
+        subtotal += lineTotal;
+        const itemIvaRate = parseFloat(item.iva || 16) / 100;
+        totalIva += lineTotal * itemIvaRate;
+    });
+    
+    const totalUsd = subtotal + totalIva;
+    const totalBs = totalUsd * bcvRate;
+    
+    document.getElementById('modal-total-usd').innerText = `$${totalUsd.toFixed(2)}`;
+    document.getElementById('modal-total-bs').innerText = `${totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs.`;
+    
+    document.getElementById('payment-reference').value = '';
+    document.getElementById('confirm-payment-method').value = 'efectivo_usd';
+    toggleReferenceInput();
+    
+    openModal('modal-payment');
+}
+
+function toggleReferenceInput() {
+    const method = document.getElementById('confirm-payment-method').value;
+    const refContainer = document.getElementById('reference-container');
+    const digitalMethods = ['pago_movil', 'paypal', 'binance'];
+    refContainer.style.display = digitalMethods.includes(method) ? 'block' : 'none';
+}
+
+function finalizeSale() {
+    const method = document.getElementById('confirm-payment-method').value;
+    const reference = document.getElementById('payment-reference').value.trim();
+    const digitalMethods = ['pago_movil', 'paypal', 'binance'];
+    
+    if (digitalMethods.includes(method) && !reference) {
+        alert("Por favor, ingrese el número de referencia del pago.");
+        return;
+    }
+    
+    processSale(method, reference);
+    closeModal('modal-payment');
+}
+
+function processSale(method, reference = '') {
+    if (currentCart.length === 0) return;
+    
+    let subtotal = 0;
+    let totalIva = 0;
+    currentCart.forEach(item => {
+        const lineTotal = item.price * item.qty;
+        subtotal += lineTotal;
+        const itemIvaRate = parseFloat(item.iva || 16) / 100;
+        totalIva += lineTotal * itemIvaRate;
+    });
+    
+    const totalUsd = subtotal + totalIva;
     
     const sale = {
         id: Date.now(),
@@ -449,13 +510,13 @@ function processSale() {
         totalUsd: totalUsd,
         totalBs: totalUsd * bcvRate,
         rate: bcvRate,
-        method: method
+        method: method,
+        reference: reference
     };
     
     sales.push(sale);
     localStorage.setItem('pos_sales', JSON.stringify(sales));
     
-    // Update Stock
     currentCart.forEach(cartItem => {
         const invItem = inventory.find(p => p.id === cartItem.id);
         if (invItem) {
@@ -465,10 +526,8 @@ function processSale() {
     });
     saveInventory();
     
-    // Generate Invoice PDF
     generateInvoice(sale);
     
-    // Reset
     currentCart = [];
     renderCart();
     updateDashboard();
@@ -515,9 +574,14 @@ function generateInvoice(sale) {
     doc.setFontSize(8);
     doc.text(`Fecha: ${new Date(sale.date).toLocaleString()}`, 10, 20);
     doc.text(`Tasa BCV: ${sale.rate} Bs.`, 10, 25);
-    doc.line(5, 30, 75, 30);
+    if (sale.reference) {
+        doc.text(`Ref: ${sale.reference}`, 10, 30);
+        y = 40;
+    } else {
+        y = 35;
+    }
+    doc.line(5, y - 5, 75, y - 5);
     
-    let y = 35;
     sale.items.forEach(item => {
         doc.text(`${item.name} x${item.qty}`, 10, y);
         doc.text(`$${(item.price * item.qty).toFixed(2)}`, 70, y, { align: "right" });
