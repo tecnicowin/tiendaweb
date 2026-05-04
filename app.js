@@ -554,6 +554,36 @@ function updateDashboard() {
     document.getElementById('stat-sales-today').innerText = `$${totalUsd.toFixed(2)}`;
     document.getElementById('stat-caja-total').innerText = `${totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs.`;
     document.getElementById('stat-stock-total').innerText = inventory.reduce((acc, p) => acc + p.stock, 0);
+
+    // Cierre por Métodos (Dashboard)
+    const methodTotals = {
+        'efectivo_usd': { label: 'Efectivo $', usd: 0, bs: 0, icon: 'fa-dollar-sign' },
+        'efectivo_bs': { label: 'Efectivo Bs', usd: 0, bs: 0, icon: 'fa-money-bill-wave' },
+        'pago_movil': { label: 'Pago Móvil', usd: 0, bs: 0, icon: 'fa-mobile-alt' },
+        'binance': { label: 'Binance Pay', usd: 0, bs: 0, icon: 'fa-coins' },
+        'paypal': { label: 'Paypal', usd: 0, bs: 0, icon: 'fa-brands fa-paypal' }
+    };
+
+    todaySales.forEach(sale => {
+        if (methodTotals[sale.method]) {
+            methodTotals[sale.method].usd += sale.totalUsd;
+            methodTotals[sale.method].bs += sale.totalBs;
+        }
+    });
+
+    const closureGrid = document.getElementById('closure-cards-grid');
+    if (closureGrid) {
+        closureGrid.innerHTML = Object.values(methodTotals).map(m => `
+            <div class="stat-card" style="padding: 1.25rem; border-left: 4px solid var(--primary); background: var(--bg-card);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <i class="fas ${m.icon}" style="color: var(--primary); font-size: 1rem;"></i>
+                    <span class="text-muted" style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">${m.label}</span>
+                </div>
+                <div style="font-size: 1.3rem; font-weight: 800; margin-bottom: 2px;">$${m.usd.toFixed(2)}</div>
+                <div class="text-emerald" style="font-size: 0.8rem; font-weight: 600;">${m.bs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs.</div>
+            </div>
+        `).join('');
+    }
 }
 
 function renderSalesHistory() {
@@ -691,4 +721,65 @@ function generateDailyReport() {
     `;
 
     summaryDiv.innerHTML = html;
+}
+
+function generateDailyPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const today = new Date().toISOString().split('T')[0];
+    const todaySales = sales.filter(s => s.date.startsWith(today));
+    
+    doc.setFontSize(20);
+    doc.setTextColor(16, 185, 129);
+    doc.text("REPORTE DE CIERRE DE CAJA", 105, 20, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Fecha del Cierre: ${new Date().toLocaleDateString()}`, 20, 30);
+    doc.text(`Tasa de Cambio (BCV): ${bcvRate} Bs.`, 20, 35);
+    
+    const methodTotals = {
+        'efectivo_usd': { label: 'Efectivo $', usd: 0, bs: 0 },
+        'efectivo_bs': { label: 'Efectivo Bs', usd: 0, bs: 0 },
+        'pago_movil': { label: 'Pago Móvil', usd: 0, bs: 0 },
+        'binance': { label: 'Binance Pay', usd: 0, bs: 0 },
+        'paypal': { label: 'Paypal', usd: 0, bs: 0 }
+    };
+
+    let grandUsd = 0;
+    let grandBs = 0;
+
+    todaySales.forEach(s => {
+        if (methodTotals[s.method]) {
+            methodTotals[s.method].usd += s.totalUsd;
+            methodTotals[s.method].bs += s.totalBs;
+            grandUsd += s.totalUsd;
+            grandBs += s.totalBs;
+        }
+    });
+
+    const tableData = Object.values(methodTotals).map(m => [
+        m.label,
+        `$${m.usd.toFixed(2)}`,
+        `${m.bs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs.`
+    ]);
+
+    doc.autoTable({
+        startY: 45,
+        head: [['Forma de Pago', 'Total USD', 'Total Bs']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [16, 185, 129] }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text("TOTAL GENERAL DE CAJA:", 20, finalY);
+    doc.setTextColor(0);
+    doc.text(`$${grandUsd.toFixed(2)}`, 140, finalY);
+    doc.setFontSize(11);
+    doc.text(`${grandBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} Bs.`, 140, finalY + 7);
+
+    doc.save(`Cierre_${today}.pdf`);
 }
