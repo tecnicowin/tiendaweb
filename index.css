@@ -82,9 +82,10 @@ body {
 /* Main Content */
 .main-content {
     margin-left: 260px;
-    padding: 2rem;
+    padding: 2.5rem;
     width: calc(100% - 260px);
     transition: var(--transition);
+    min-height: 100vh;
 }
 
 @media (max-width: 768px) {
@@ -124,8 +125,8 @@ body {
     .main-content {
         margin-left: 0;
         width: 100%;
-        padding: 1rem;
-        padding-bottom: 90px;
+        padding: 1.5rem;
+        padding-bottom: 120px; /* Espacio extra para el menú inferior */
     }
     
     header {
