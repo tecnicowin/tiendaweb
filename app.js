@@ -377,11 +377,11 @@ let lastScannedTime = 0;
 function startScanner(mode = 'pos') {
     openModal('modal-scanner');
     
+    // Destruir instancia previa si existe para liberar la cámara
     if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            initScanner(mode);
-        }).catch(() => {
-            initScanner(mode);
+        html5QrCode.stop().catch(() => {}).finally(() => {
+            html5QrCode = null;
+            setTimeout(() => initScanner(mode), 300);
         });
     } else {
         initScanner(mode);
@@ -389,61 +389,41 @@ function startScanner(mode = 'pos') {
 }
 
 function initScanner(mode) {
+    // Usar el modo más simple posible de la librería
     html5QrCode = new Html5Qrcode("reader");
     
-    const config = { 
-        fps: 30, 
-        qrbox: { width: 280, height: 160 },
-        aspectRatio: 1.0,
-        experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
-        }
+    const qrConfig = { 
+        fps: 20, 
+        qrbox: { width: 250, height: 150 }
     };
     
-    // Configuración avanzada de la cámara para máxima sensibilidad
-    const videoConfig = {
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-    };
-    
-    html5QrCode.start(videoConfig, config, (decodedText) => {
+    // Iniciar con la cámara trasera por defecto
+    html5QrCode.start({ facingMode: "environment" }, qrConfig, (decodedText) => {
         const cleanCode = decodedText.trim();
         
         if (mode === 'inventory') {
             document.getElementById('p-code').value = cleanCode;
             stopScanner();
-            if (window.navigator.vibrate) window.navigator.vibrate(100);
             return;
         }
 
         const now = Date.now();
-        if (cleanCode === lastScannedCode && (now - lastScannedTime) < 1500) return;
+        if (cleanCode === lastScannedCode && (now - lastScannedTime) < 2000) return;
         
         const prod = inventory.find(p => p.code === cleanCode);
-        
         if (prod) {
             addToCart(prod);
             lastScannedCode = cleanCode;
             lastScannedTime = now;
             if (window.navigator.vibrate) window.navigator.vibrate(100);
-            showScanToast(prod.name, 'success');
+            showScanToast(prod.name);
         } else {
-            lastScannedCode = cleanCode;
-            lastScannedTime = now;
-            showScanToast(`Código ${cleanCode} no registrado`, 'error');
-            if (window.navigator.vibrate) window.navigator.vibrate([50, 50, 50]);
+            showScanToast(`No registrado: ${cleanCode}`, 'error');
         }
     }).catch(err => {
-        console.error("Error crítico de cámara:", err);
-        // Intento de recuperación con configuración básica si la avanzada falla
-        html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
-            // Lógica duplicada para el fallback
-            const clean = text.trim();
-            if (mode === 'inventory') { document.getElementById('p-code').value = clean; stopScanner(); return; }
-            const p = inventory.find(x => x.code === clean);
-            if (p) { addToCart(p); showScanToast(p.name); }
-        }).catch(e => alert("Error de acceso: Por favor, asegúrate de que ninguna otra app esté usando la cámara y que tengas HTTPS activo."));
+        console.error("Error al iniciar cámara:", err);
+        alert("Error: Asegúrate de permitir el acceso a la cámara y usar una conexión segura (HTTPS).");
+        closeModal('modal-scanner');
     });
 }
 
