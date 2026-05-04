@@ -5,6 +5,9 @@ let inventoryLogs = JSON.parse(localStorage.getItem('pos_logs')) || [];
 let currentCart = [];
 let bcvData = JSON.parse(localStorage.getItem('pos_bcv')) || { rate: 38.50, date: "" };
 let bcvRate = bcvData.rate;
+let paymentSettings = JSON.parse(localStorage.getItem('pos_payment_settings')) || {
+    pmBank: '', pmPhone: '', binanceId: '', paypalEmail: ''
+};
 
 // --- INITIALIZATION ---
 // --- INITIALIZATION ---
@@ -14,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderInventory();
     renderSalesHistory();
     initEventListeners();
+    loadSettings();
 });
 
 function initEventListeners() {
@@ -23,8 +27,7 @@ function initEventListeners() {
         productForm.addEventListener('submit', (e) => {
             e.preventDefault();
             try {
-                const newProd = {
-                    id: Date.now().toString(),
+                const newProdData = {
                     code: document.getElementById('p-code').value,
                     name: document.getElementById('p-name').value,
                     cost: parseFloat(document.getElementById('p-cost').value || 0),
@@ -34,20 +37,34 @@ function initEventListeners() {
                     image: document.getElementById('img-preview').querySelector('img')?.src || ''
                 };
                 
-                if (!newProd.name) throw new Error("El nombre es obligatorio");
+                if (!newProdData.name) throw new Error("El nombre es obligatorio");
 
-                inventory.push(newProd);
-                logMovement(newProd.id, 'Entrada Inicial', newProd.stock);
+                if (editingProductId) {
+                    const index = inventory.findIndex(p => p.id === editingProductId);
+                    if (index !== -1) {
+                        inventory[index] = { ...inventory[index], ...newProdData };
+                        logMovement(editingProductId, 'Edición Manual', 0);
+                    }
+                    editingProductId = null;
+                } else {
+                    const newProd = {
+                        id: Date.now().toString(),
+                        ...newProdData
+                    };
+                    inventory.push(newProd);
+                    logMovement(newProd.id, 'Entrada Inicial', newProd.stock);
+                }
+
                 saveInventory();
                 renderInventory();
                 closeModal('modal-product');
                 e.target.reset();
                 document.getElementById('img-preview').innerHTML = '<i class="fas fa-image text-muted"></i>';
+                document.querySelector('#modal-product h2').innerText = "Registrar Producto";
                 
-                alert("¡Producto guardado exitosamente!");
-                showSection('dashboard');
+                showSection('inventory');
             } catch (err) {
-                alert("Error al guardar: " + err.message);
+                alert("Error: " + err.message);
             }
         });
     }
@@ -65,6 +82,44 @@ function initEventListeners() {
                 }
             }
         });
+    }
+
+    // Inventory Search
+    const invSearch = document.getElementById('inventory-search');
+    if (invSearch) {
+        invSearch.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = inventory.filter(p => 
+                p.name.toLowerCase().includes(query) || 
+                (p.code && p.code.toLowerCase().includes(query))
+            );
+            renderInventory(filtered);
+        });
+    }
+    // Settings Form
+    const settingsForm = document.getElementById('settings-form');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            paymentSettings = {
+                pmBank: document.getElementById('set-pm-bank').value,
+                pmPhone: document.getElementById('set-pm-phone').value,
+                binanceId: document.getElementById('set-binance-id').value,
+                paypalEmail: document.getElementById('set-paypal-email').value
+            };
+            localStorage.setItem('pos_payment_settings', JSON.stringify(paymentSettings));
+            alert("Configuración guardada correctamente");
+        });
+    }
+}
+
+function loadSettings() {
+    const pmBank = document.getElementById('set-pm-bank');
+    if (pmBank) {
+        pmBank.value = paymentSettings.pmBank || '';
+        document.getElementById('set-pm-phone').value = paymentSettings.pmPhone || '';
+        document.getElementById('set-binance-id').value = paymentSettings.binanceId || '';
+        document.getElementById('set-paypal-email').value = paymentSettings.paypalEmail || '';
     }
 }
 
@@ -98,11 +153,41 @@ function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 // --- INVENTORY MANAGEMENT ---
-// (Listeners moved to initEventListeners)
+let editingProductId = null;
 
-function renderInventory() {
+function editProduct(id) {
+    const prod = inventory.find(p => p.id === id);
+    if (!prod) return;
+
+    editingProductId = id;
+    openModal('modal-product');
+    
+    document.getElementById('p-code').value = prod.code || '';
+    document.getElementById('p-name').value = prod.name || '';
+    document.getElementById('p-cost').value = prod.cost || 0;
+    document.getElementById('p-price').value = prod.price || 0;
+    document.getElementById('p-stock').value = prod.stock || 0;
+    document.getElementById('p-iva').value = prod.iva || "16";
+    
+    if (prod.image) {
+        document.getElementById('img-preview').innerHTML = `<img src="${prod.image}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">`;
+    }
+    
+    document.querySelector('#modal-product h2').innerText = "Editar Producto";
+}
+
+function deleteProduct(id) {
+    if (confirm("¿Estás seguro de eliminar este producto?")) {
+        inventory = inventory.filter(p => p.id !== id);
+        saveInventory();
+        renderInventory();
+    }
+}
+
+function renderInventory(data = null) {
     const tbody = document.getElementById('inventory-table-body');
-    tbody.innerHTML = inventory.map(p => `
+    const itemsToRender = data || inventory;
+    tbody.innerHTML = itemsToRender.map(p => `
         <tr>
             <td><img src="${p.image || 'https://via.placeholder.com/40'}" class="product-img"></td>
             <td>${p.code || 'N/A'}</td>
@@ -266,46 +351,76 @@ let lastScannedTime = 0;
 
 function startScanner(mode = 'pos') {
     openModal('modal-scanner');
+    
+    if (html5QrCode) {
+        html5QrCode.clear();
+    }
+    
     html5QrCode = new Html5Qrcode("reader");
+    
     const config = { 
-        fps: 20, 
-        qrbox: { width: 280, height: 180 },
-        aspectRatio: 1.0
+        fps: 30,
+        qrbox: { width: 300, height: 150 },
+        aspectRatio: 1.0,
+        experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+        }
     };
     
     html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+        const cleanCode = decodedText.trim();
+        
         if (mode === 'inventory') {
-            document.getElementById('p-code').value = decodedText;
+            document.getElementById('p-code').value = cleanCode;
+            
+            const existing = inventory.find(p => p.code === cleanCode);
+            if (existing) {
+                if(confirm(`El código ${cleanCode} ya pertenece a "${existing.name}". ¿Desea editarlo?`)) {
+                    stopScanner();
+                    editProduct(existing.id);
+                    return;
+                }
+            }
+            
             stopScanner();
             if (window.navigator.vibrate) window.navigator.vibrate(100);
             return;
         }
 
         const now = Date.now();
-        // Cooldown de 2 segundos para el mismo código para evitar duplicados
-        if (decodedText === lastScannedCode && (now - lastScannedTime) < 2000) return;
+        if (cleanCode === lastScannedCode && (now - lastScannedTime) < 1500) return;
         
-        const prod = inventory.find(p => p.code === decodedText);
+        const prod = inventory.find(p => p.code === cleanCode);
+        
         if (prod) {
             addToCart(prod);
-            lastScannedCode = decodedText;
+            lastScannedCode = cleanCode;
             lastScannedTime = now;
             
-            // Feedback visual/haptico
             if (window.navigator.vibrate) window.navigator.vibrate(100);
-            
-            // Mostrar aviso temporal de "Producto añadido"
-            showScanToast(prod.name);
+            showScanToast(prod.name, 'success');
+        } else {
+            lastScannedCode = cleanCode;
+            lastScannedTime = now;
+            showScanToast(`Código ${cleanCode} no registrado`, 'error');
+            if (window.navigator.vibrate) window.navigator.vibrate([50, 50, 50]);
         }
-    }).catch(err => console.error(err));
+    }).catch(err => {
+        console.error("Error al iniciar cámara:", err);
+    });
 }
 
-function showScanToast(name) {
+function showScanToast(message, type = 'success') {
     const toast = document.createElement('div');
-    toast.innerText = `✅ ${name} añadido`;
-    toast.style = "position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 10px 20px; border-radius: 50px; z-index: 2000; animation: fadeIn 0.3s;";
+    const color = type === 'success' ? 'var(--primary)' : '#ef4444';
+    toast.innerHTML = type === 'success' ? `✅ ${message}` : `❌ ${message}`;
+    toast.style = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: ${color}; color: white; padding: 12px 24px; border-radius: 50px; z-index: 2000; animation: fadeIn 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: 600;`;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2000);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
 }
 
 function stopScanner() {
@@ -435,4 +550,73 @@ function updateRate() {
         document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
         renderCart();
     }
+}
+function generateDailyReport() {
+    const today = new Date().toISOString().split('T')[0];
+    const todaySales = sales.filter(s => s.date.startsWith(today));
+    
+    if (todaySales.length === 0) {
+        alert("No hay ventas registradas el día de hoy.");
+        return;
+    }
+
+    const totals = {
+        efectivo_usd: { label: 'Efectivo $', usd: 0, bs: 0 },
+        efectivo_bs: { label: 'Efectivo Bs', usd: 0, bs: 0 },
+        pago_movil: { label: 'Pago Móvil', usd: 0, bs: 0 },
+        paypal: { label: 'Paypal', usd: 0, bs: 0 },
+        binance: { label: 'Binance', usd: 0, bs: 0 }
+    };
+
+    let grandTotalUsd = 0;
+    let grandTotalBs = 0;
+
+    todaySales.forEach(s => {
+        if (totals[s.method]) {
+            totals[s.method].usd += s.totalUsd;
+            totals[s.method].bs += s.totalBs;
+            grandTotalUsd += s.totalUsd;
+            grandTotalBs += s.totalBs;
+        }
+    });
+
+    const summaryDiv = document.getElementById('daily-closure-summary');
+    summaryDiv.style.display = 'block';
+    
+    let html = `
+        <div class="stat-card" style="border: 1px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">Resumen Cierre de Caja (${new Date().toLocaleDateString()})</h3>
+                <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.style.display='none'">Cerrar</button>
+            </div>
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+    `;
+
+    for (const key in totals) {
+        const t = totals[key];
+        html += `
+            <div style="padding: 1rem; background: var(--glass); border-radius: 12px; border: 1px solid var(--border);">
+                <span class="text-muted" style="font-size: 0.8rem;">${t.label}</span>
+                <div style="font-weight: 700; margin-top: 5px;">$${t.usd.toFixed(2)}</div>
+                <div class="text-emerald" style="font-size: 0.8rem;">${t.bs.toLocaleString()} Bs.</div>
+            </div>
+        `;
+    }
+
+    html += `
+            </div>
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600;">TOTAL GENERAL:</span>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">$${grandTotalUsd.toFixed(2)}</div>
+                    <div class="text-muted">${grandTotalBs.toLocaleString()} Bs.</div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; font-size: 0.8rem;" class="text-muted">
+                <strong>Datos de Pago:</strong> PM: ${paymentSettings.pmBank} | Bin: ${paymentSettings.binanceId}
+            </div>
+        </div>
+    `;
+
+    summaryDiv.innerHTML = html;
 }
