@@ -104,9 +104,9 @@
                             <th>Imagen</th>
                             <th>Código</th>
                             <th>Producto</th>
-                            <th>Costo ($)</th>
                             <th>Venta ($)</th>
                             <th>Stock</th>
+                            <th>Entrada</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -265,12 +265,17 @@
     <div class="modal-overlay" id="modal-product">
         <div class="modal">
             <h2>Registrar Producto</h2>
-            <form id="product-form" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
-                <div class="form-grid">
-                    <div style="display: flex; gap: 5px;">
-                        <input type="text" id="p-code" placeholder="Código de Barras" class="btn btn-secondary" style="flex-grow: 1;">
-                        <button type="button" class="btn btn-primary" onclick="startScanner('inventory')" style="padding: 10px;"><i class="fas fa-barcode"></i></button>
+            <form id="product-form" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <div style="flex-grow: 1;">
+                        <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">Código de Barras</label>
+                        <input type="text" id="p-code" placeholder="Escanear o escribir código" class="btn btn-secondary" style="width: 100%; text-align: left;">
                     </div>
+                    <button type="button" class="btn btn-primary" onclick="startScanner('inventory')" style="height: 45px; width: 45px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+                <div class="form-grid">
                     <input type="text" id="p-name" placeholder="Nombre del Producto" class="btn btn-secondary">
                 </div>
                 <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">

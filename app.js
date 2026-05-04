@@ -200,20 +200,29 @@ function deleteProduct(id) {
     }
 }
 
-function renderInventory(data = null) {
-    const tbody = document.getElementById('inventory-table-body');
-    const itemsToRender = data || inventory;
-    tbody.innerHTML = itemsToRender.map(p => `
+function renderInventory(data = inventory) {
+    const tbody = document.getElementById('inventory-body');
+    tbody.innerHTML = data.map(p => `
         <tr>
-            <td><img src="${p.image || 'https://via.placeholder.com/40'}" class="product-img"></td>
-            <td>${p.code || 'N/A'}</td>
-            <td>${p.name}</td>
-            <td>$${p.cost.toFixed(2)}</td>
+            <td><img src="${p.image || 'https://via.placeholder.com/45'}" class="product-img"></td>
+            <td><span class="text-muted" style="font-size: 0.8rem;">${p.code || 'N/A'}</span></td>
+            <td style="font-weight: 600;">${p.name}</td>
             <td class="text-emerald">$${p.price.toFixed(2)}</td>
-            <td>${p.stock}</td>
             <td>
-                <button onclick="editProduct('${p.id}')" class="btn btn-secondary" style="padding: 5px 10px;"><i class="fas fa-edit"></i></button>
-                <button onclick="deleteProduct('${p.id}')" class="btn btn-secondary" style="padding: 5px 10px; color: #ef4444;"><i class="fas fa-trash"></i></button>
+                <span class="btn ${p.stock <= 5 ? 'btn-secondary text-amber' : 'btn-secondary'}" style="padding: 4px 10px; cursor: default;">
+                    ${p.stock}
+                </span>
+            </td>
+            <td>
+                <button onclick="addStock('${p.id}')" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </td>
+            <td>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="editProduct('${p.id}')" class="btn btn-secondary" style="padding: 8px;"><i class="fas fa-edit"></i></button>
+                    <button onclick="deleteProduct('${p.id}')" class="btn btn-secondary" style="padding: 8px; color: #ef4444;"><i class="fas fa-trash"></i></button>
+                </div>
             </td>
         </tr>
     `).join('');
@@ -369,18 +378,22 @@ function startScanner(mode = 'pos') {
     openModal('modal-scanner');
     
     if (html5QrCode) {
-        html5QrCode.clear();
+        html5QrCode.stop().then(() => {
+            initScanner(mode);
+        }).catch(() => {
+            initScanner(mode);
+        });
+    } else {
+        initScanner(mode);
     }
-    
+}
+
+function initScanner(mode) {
     html5QrCode = new Html5Qrcode("reader");
-    
     const config = { 
         fps: 30,
-        qrbox: { width: 300, height: 150 },
-        aspectRatio: 1.0,
-        experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
-        }
+        qrbox: { width: 280, height: 180 },
+        aspectRatio: 1.0
     };
     
     html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
@@ -388,16 +401,6 @@ function startScanner(mode = 'pos') {
         
         if (mode === 'inventory') {
             document.getElementById('p-code').value = cleanCode;
-            
-            const existing = inventory.find(p => p.code === cleanCode);
-            if (existing) {
-                if(confirm(`El código ${cleanCode} ya pertenece a "${existing.name}". ¿Desea editarlo?`)) {
-                    stopScanner();
-                    editProduct(existing.id);
-                    return;
-                }
-            }
-            
             stopScanner();
             if (window.navigator.vibrate) window.navigator.vibrate(100);
             return;
@@ -412,7 +415,6 @@ function startScanner(mode = 'pos') {
             addToCart(prod);
             lastScannedCode = cleanCode;
             lastScannedTime = now;
-            
             if (window.navigator.vibrate) window.navigator.vibrate(100);
             showScanToast(prod.name, 'success');
         } else {
@@ -423,6 +425,7 @@ function startScanner(mode = 'pos') {
         }
     }).catch(err => {
         console.error("Error al iniciar cámara:", err);
+        alert("No se pudo acceder a la cámara. Asegúrate de dar permisos HTTPS.");
     });
 }
 
