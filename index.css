@@ -32,7 +32,7 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 75px;
+    height: 70px;
     background: var(--bg-card);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
@@ -40,21 +40,25 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2rem;
+    padding: 0 1.5rem;
     z-index: 9999;
     box-shadow: var(--shadow);
+    flex-wrap: nowrap;
 }
 
 .top-nav .logo {
     margin-bottom: 0;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .top-nav nav {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     height: 100%;
     align-items: center;
+    justify-content: center;
+    flex-grow: 1;
 }
 
 .nav-link {
@@ -187,19 +191,20 @@ td {
 
 /* --- RESPONSIVE --- */
 
-@media (max-width: 1024px) {
-    .top-nav { padding: 0 1rem; }
+@media (max-width: 950px) {
+    .top-nav { padding: 0 0.75rem; }
     .top-nav .logo span { display: none; }
     .nav-link span { display: none; }
     .nav-link { padding: 0.75rem; }
     .nav-link i { font-size: 1.4rem; }
+    .bcv-card { padding: 0.4rem 0.6rem; gap: 5px; }
 }
 
 @media (max-width: 600px) {
-    .top-nav { height: 65px; }
-    .main-content { margin-top: 65px; padding: 1.5rem; }
+    .top-nav { height: 60px; }
+    .main-content { margin-top: 60px; padding: 1rem; }
     .bcv-card .bcv-label { display: none; }
-    .top-nav nav { gap: 5px; }
+    .top-nav nav { gap: 2px; }
     .nav-link { padding: 0.5rem; }
     
     .form-grid { grid-template-columns: 1fr !important; }
